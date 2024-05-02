@@ -1,0 +1,356 @@
+<template>
+    <section>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card shadow mb-4">
+            <div class="card-body">
+              <div class="form-group">
+                <label for="">Product Name</label>
+                <input
+                  type="text"
+                  v-model="product_name"
+                  placeholder="Product Name"
+                  class="form-control"
+                />
+              </div>
+              <div class="form-group">
+                <label for="">Product SKU</label>
+                <input
+                  type="text"
+                  v-model="product_sku"
+                  placeholder="Product Name"
+                  class="form-control"
+                />
+              </div>
+              <div class="form-group">
+                <label for="">Description</label>
+                <textarea
+                  v-model="description"
+                  id=""
+                  cols="30"
+                  rows="4"
+                  class="form-control"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+  
+          <div class="card shadow mb-4">
+            <div
+              class="card-header py-3 d-flex flex-row align-items-center justify-content-between"
+            >
+              <h6 class="m-0 font-weight-bold text-primary">Media</h6>
+            </div>
+            <div class="card-body border">
+              <vue-dropzone
+                ref="myVueDropzone"
+                id="dropzone"
+                :options="dropzoneOptions"
+              ></vue-dropzone>
+            </div>
+          </div>
+        </div>
+  
+        <div class="col-md-6">
+          <div class="card shadow mb-4">
+            <div
+              class="card-header py-3 d-flex flex-row align-items-center justify-content-between"
+            >
+              <h6 class="m-0 font-weight-bold text-primary">Variants</h6>
+            </div>
+            <div class="card-body">
+              <div class="row" v-for="(item, index) in product_variant">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label for="">Option</label>
+                    <select v-model="item.option" class="form-control">
+                      <option v-for="variant in variants" :value="variant.id">
+                        {{ variant.title }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <div class="form-group">
+                    <label
+                      v-if="product_variant.length != 1"
+                      @click="
+                        product_variant.splice(index, 1);
+                        checkVariant;
+                      "
+                      class="float-right text-primary"
+                      style="cursor: pointer"
+                      >Remove</label
+                    >
+                    <label v-else for="">.</label>
+                    <input-tag
+                      v-model="item.tags"
+                      @input="checkVariant"
+                      class="form-control"
+                    ></input-tag>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              class="card-footer"
+              v-if="
+                product_variant.length < variants.length &&
+                product_variant.length < 3
+              "
+            >
+              <button @click="newVariant" class="btn btn-primary">
+                Add another option
+              </button>
+            </div>
+  
+            <div class="card-header text-uppercase">Preview</div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <td>Variant</td>
+                      <td>Price</td>
+                      <td>Stock</td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="variant_price in product_variant_prices">
+                      <td>{{ variant_price.title }}</td>
+                      <td>
+                        <input
+                          type="text"
+                          class="form-control"
+                          v-model="variant_price.price"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          class="form-control"
+                          v-model="variant_price.stock"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <button @click="updateProduct" type="submit" class="btn btn-lg btn-primary">
+        Save
+      </button>
+      <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
+    </section>
+  </template>
+  
+  <script>
+  import vue2Dropzone from "vue2-dropzone";
+  import "vue2-dropzone/dist/vue2Dropzone.min.css";
+  import InputTag from "vue-input-tag";
+  import axios from "axios";
+  
+  export default {
+    components: {
+      vueDropzone: vue2Dropzone,
+      InputTag,
+    },
+    props: {
+      productId: Number,
+      variants: {
+        type: Array,
+        required: true,
+      },
+    },
+    data() {
+      return {
+        product_name: "",
+        product_sku: "",
+        description: "",
+        images: [],
+        product_variant: [
+          {
+            option: this.variants[0].id,
+            tags: [],
+          },
+        ],
+        product_variant_prices: [],
+        dropzoneOptions: {
+          url: "https://httpbin.org/post",
+          thumbnailWidth: 150,
+          maxFilesize: 0.5,
+          headers: { "My-Awesome-Header": "header value" },
+        },
+      };
+    },
+    methods: {
+      showAlert: (msg) => {
+        alert(msg);
+      },
+  
+      // Function to check if two arrays are equal
+      arraysAreEqual(arr1, arr2) {
+        // Sort and stringify both arrays
+        const sortedStr1 = arr1.slice().sort().toString();
+        const sortedStr2 = arr2.slice().sort().toString();
+        // Compare the string representations
+        return sortedStr1 === sortedStr2;
+      },
+  
+      // Function to check if an array exists in an array of arrays
+      arrayExistsInArrays(targetArray, arrays) {
+        let exists = false;
+        arrays.forEach((array) => {
+          if (this.arraysAreEqual(targetArray, array)) {
+            exists = true;
+          }
+        });
+        return exists;
+      },
+  
+      // it will push a new object into product variant
+      newVariant() {
+        let all_variants = this.variants.map((el) => el.id);
+        let selected_variants = this.product_variant.map((el) => el.option);
+        let available_variants = all_variants.filter(
+          (entry1) => !selected_variants.some((entry2) => entry1 == entry2)
+        );
+        // console.log(available_variants)
+  
+        this.product_variant.push({
+          option: available_variants[0],
+          tags: [],
+        });
+      },
+  
+      // check the variant and render all the combination
+      checkVariant() {
+        // Step 1: Extract tags from product_variant
+        let tags = [];
+        this.product_variant.forEach((item) => {
+          tags.push(item.tags);
+        });
+  
+        // Step 2: Get existing combinations from product_variant_prices
+        let existingCombinations = this.product_variant_prices.map(
+          (item) => item.title
+        );
+  
+        // Step 3: Add new combinations
+        this.getCombn(tags).forEach((item) => {
+          const newCombo = item.split("/").filter((segment) => segment !== "");
+          const isNewComboUnique = !this.arrayExistsInArrays(
+            newCombo,
+            existingCombinations.map((combo) =>
+              combo.split("/").filter((segment) => segment !== "")
+            )
+          );
+          if (isNewComboUnique) {
+            this.product_variant_prices.push({
+              title: item,
+              price: 0,
+              stock: 0,
+            });
+          }
+        });
+  
+        // Step 4: Remove previous combinations that are no longer valid
+        existingCombinations.forEach((ex_item) => {
+          const exCombo = ex_item.split("/").filter((segment) => segment !== "");
+          const isPreviousComboRemoved = !this.arrayExistsInArrays(
+            exCombo,
+            this.getCombn(tags).map((combo) =>
+              combo.split("/").filter((segment) => segment !== "")
+            )
+          );
+  
+          if (isPreviousComboRemoved) {
+            let indexToRemove = this.product_variant_prices.findIndex(
+              (curr_item) => curr_item.title === ex_item
+            );
+            if (indexToRemove > -1) {
+              this.product_variant_prices.splice(indexToRemove, 1);
+            }
+          }
+        });
+      },
+  
+      // combination algorithm
+      getCombn(arr, pre) {
+        pre = pre || "";
+        if (!arr.length) {
+          return pre;
+        }
+        let self = this;
+        let ans = arr[0].reduce(function (ans, value) {
+          return ans.concat(self.getCombn(arr.slice(1), pre + value + "/"));
+        }, []);
+        return ans;
+      },
+  
+      readCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(";");
+        for (var i = 0; i < ca.length; i++) {
+          var c = ca[i];
+          while (c.charAt(0) == " ") c = c.substring(1, c.length);
+          if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+      },
+  
+      fetchProductData() {
+        axios
+          .get(`/product/api/retrive/${this.productId}`)
+          .then((response) => {
+            console.log(response.data);
+            // // Assuming the API response contains product data
+            this.product_name = response.data.title;
+            this.product_sku = response.data.sku;
+            this.description = response.data.description;
+            this.product_variant = response.data.product_variant;
+            this.product_variant_prices = response.data.product_variant_prices;
+            this.images = response.data.images;
+          })
+          .catch((error) => {
+            console.error("Error fetching product data:", error);
+          });
+      },
+      // store product into database
+      updateProduct() {
+        let csrftoken = this.readCookie("csrftoken");
+  
+        let product = {
+          title: this.product_name,
+          sku: this.product_sku,
+          description: this.description,
+          product_image: this.images,
+          product_variant: this.product_variant,
+          product_variant_prices: this.product_variant_prices,
+        };
+  
+        axios
+          .put(`/product/api/edit/${this.productId}/`, product, {
+            headers: { "X-CSRFToken": csrftoken },
+          })
+          .then((response) => {
+            console.log(response.data);
+            this.showAlert("Product Updated Successfully !!!");
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+  
+        console.log(product);
+      },
+    },
+    mounted() {
+      this.fetchProductData();
+      console.log("Component mounted.");
+    },
+  };
+  </script>

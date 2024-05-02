@@ -1,0 +1,117 @@
+<div class="card-body">
+    <div class="table-response">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Variant</th>
+                <th width="150px">Action</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {% if page_obj %}
+            {% for product in page_obj %}
+            <tr>
+                <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+                <td>{{ product.title }} <br> Created at : {{ product.created_at|timesince }} ago</td>
+                <td>{{ product.description }}</td>
+                
+                <td>
+                    <dl class="row mb-0" style="height: 80px; overflow: hidden" id="variant-{{ forloop.counter }}">
+                        {% for product_variant in product.productvariantprice_set.all %}
+                        <dt class="col-sm-3 pb-0">
+                            {{ product_variant.product_variant_two.variant_title }}/
+                            {{ product_variant.product_variant_one.variant_title }}/ 
+                            {{ product_variant.product_variant_three.variant_title }}
+                        </dt>
+                        <dd class="col-sm-9">
+                            <dl class="row mb-0">
+                                <dd class="col-sm-4 pb-0">Price : {{ product_variant.price }}</dd>
+                                <dd class="col-sm-8 pb-0">InStock : {{ product_variant.stock }}</dd>
+                            </dl>
+                        </dd>
+                        {% endfor %}
+                    </dl>
+                    
+                    <button onclick="$('#variant-{{ forloop.counter }}').toggleClass('h-auto')" class="btn btn-sm btn-link">Show more
+                    </button>
+                </td>
+                
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'product:edit.product' product.id %}" class="btn btn-success">Edit</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <strong>No Data Available!</strong>
+            {% endif %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+<div class="card-footer">
+    <div class="row align-items-center justify-content-between">
+        <div class="col-md-6">
+            <p>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} out of {{ page_obj.paginator.count }}</p>
+        </div>
+        <div class="col-md-2">
+                
+            <nav aria-label="Page navigation example" class="d-flex justify-content-end">
+                <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                    </li>
+                {% else %}
+                <li class="page-item disabled" aria-disabled="true">
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for page_number in page_obj.paginator.page_range %}
+                {% if page_obj.number == page_number %}
+                    <li class="page-item">
+                    <a class="page-link">
+                        {{ page_number }}
+                    </a>
+                    </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_number }}">
+                        {{ page_number }}
+                    </a>
+                    </li>
+                {% endif %} 
+
+                {% endfor %} 
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                    </li>
+                {% else %}
+                <li class="page-item disabled" aria-disabled="true">
+                    <a class="page-link" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                </ul>
+            </nav>
+    </div>
+</div>
+</div>

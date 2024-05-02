@@ -135,6 +135,9 @@ export default {
     }
   },
   methods: {
+    showAlert: (msg) => {
+      alert(msg);
+    },
     // it will push a new object into product variant
     newVariant() {
       let all_variants = this.variants.map(el => el.id)
@@ -177,9 +180,21 @@ export default {
       }, []);
       return ans;
     },
+    readCookie(name) {
+        var nameEQ = name + "=";
+        var ca = document.cookie.split(';');
+        for(var i=0;i < ca.length;i++) {
+            var c = ca[i];
+            while (c.charAt(0)==' ') c = c.substring(1,c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+        }
+        return null;
+    },
 
     // store product into database
     saveProduct() {
+      let csrftoken = this.readCookie('csrftoken');
+
       let product = {
         title: this.product_name,
         sku: this.product_sku,
@@ -189,9 +204,13 @@ export default {
         product_variant_prices: this.product_variant_prices
       }
 
+      console.log(product)
 
-      axios.post('/product', product).then(response => {
+
+      axios.post('/product/api/create/', product,{headers: {'X-CSRFToken': csrftoken}}).then(response => {
         console.log(response.data);
+        window.location.replace("/product/list/");
+        this.showAlert("Product Created Successfully !!!");
       }).catch(error => {
         console.log(error);
       })
